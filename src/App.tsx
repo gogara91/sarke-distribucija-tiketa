@@ -101,7 +101,7 @@ const getTicketName = (ticket: TicketRecord): string => {
   return firstValue ? String(firstValue).trim() : ticket.rowId;
 };
 
-const escapeCsvCell = (value: string): string => `"${value.replaceAll(`"`, `""`)}"`;
+const escapeCsvCell = (value: string): string => `"${value.replace(/"/g, `""`)}"`;
 
 const App = (): JSX.Element => {
   const [tickets, setTickets] = useState<Record<TicketType, TicketRecord[]>>({
@@ -234,6 +234,9 @@ const App = (): JSX.Element => {
     }));
 
     const unassigned = { AT: 0, CH: 0, DE: 0 };
+    const totalTickets = tickets.AT.length + tickets.CH.length + tickets.DE.length;
+    const targetLoad =
+      byAgent.length > 0 ? Math.floor(totalTickets / byAgent.length) : 0;
 
     const assignOne = (ticketType: TicketType, ticket: TicketRecord): void => {
       const eligibleGroups = ELIGIBILITY[ticketType];
@@ -245,6 +248,12 @@ const App = (): JSX.Element => {
       }
 
       candidates.sort((left, right) => {
+        const leftAtOrAboveTarget = left.assigned >= targetLoad;
+        const rightAtOrAboveTarget = right.assigned >= targetLoad;
+        if (leftAtOrAboveTarget !== rightAtOrAboveTarget) {
+          return leftAtOrAboveTarget ? 1 : -1;
+        }
+
         if (left.assigned !== right.assigned) {
           return left.assigned - right.assigned;
         }
